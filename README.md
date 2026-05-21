@@ -1,5 +1,3 @@
-# Solar_parameter_Estimation
-
 # Region-Aware Attention Framework for Photovoltaic Parameter Estimation
 
 Physics-guided region-aware attention framework for photovoltaic parameter estimation from current–voltage (I–V) characteristics. The proposed deep learning model combines CNN feature extraction, cross-region attention, and environmental conditioning for robust estimation of series resistance ($R_s$) and shunt resistance ($R_{sh}$).
@@ -115,8 +113,8 @@ pv_dataset.npz
 Clone the repository:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/YOUR_REPOSITORY.git
-cd YOUR_REPOSITORY
+git clone https://github.com/Aashikshahriar/Solar_parameter_Estimation.git
+cd Solar_parameter_Estimation
 ```
 
 Install required dependencies:
@@ -221,7 +219,7 @@ Rs and Rsh Estimation
 If you use this work, please cite:
 
 ```bibtex
-@article{Shahriar_solar_,
+@article{Shahriar_solar,
   title={Region-Aware Attention Framework for Photovoltaic Parameter Estimation},
   author={K.A.Shahriar},
   year={202}
