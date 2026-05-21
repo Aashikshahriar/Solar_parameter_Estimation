@@ -222,8 +222,7 @@ If you use this work, please cite:
 @article{Shahriar_solar,
   title={Region-Aware Attention Framework for Photovoltaic Parameter Estimation},
   author={K.A.Shahriar},
-  year={202}
-}
+  year={2026}}
 ```
 
 ---
