@@ -214,6 +214,25 @@ Rs and Rsh Estimation
 
 ---
 
+# Dataset
+
+The synthetic photovoltaic dataset used in this work is publicly available on Zenodo:
+
+🔗 https://zenodo.org/records/20329953
+
+Dataset title:
+**Synthetic Photovoltaic I–V Dataset for Series and Shunt Resistance Estimation**
+
+The dataset contains:
+- synthetic photovoltaic I–V characteristics,
+- irradiance and temperature operating conditions,
+- series resistance ($R_s$),
+- shunt resistance ($R_{sh}$),
+- Gaussian measurement noise,
+- and corresponding ground-truth photovoltaic parameters.
+
+
+
 # Citation
 
 If you use this work, please cite:
