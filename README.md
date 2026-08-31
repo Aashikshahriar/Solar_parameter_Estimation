@@ -1,257 +1,98 @@
-# Region-Aware Attention Framework for Photovoltaic Parameter Estimation
+# Solar Parameter Estimation
 
-Physics-guided region-aware attention framework for photovoltaic parameter estimation from current–voltage (I–V) characteristics. The proposed deep learning model combines CNN feature extraction, cross-region attention, and environmental conditioning for robust estimation of series resistance ($R_s$) and shunt resistance ($R_{sh}$).
+Estimating photovoltaic (PV) module degradation parameters — series resistance (**Rs**) and
+shunt resistance (**Rsh**) — directly from I-V curve measurements and environmental
+conditions (irradiance, temperature), using a physics-informed synthetic dataset and a
+deep learning regressor.
 
----
+> **Status:** This repository accompanies a manuscript currently in preparation. It documents
+> the overall pipeline end-to-end so the work is reproducible in outline, but some
+> implementation details, the trained model weights, full experimental results, and ablation
+> studies are withheld pending publication. These will be added here once the paper is
+> published.
 
-# Overview
+## Pipeline overview
 
-Photovoltaic (PV) parameter estimation plays a critical role in:
+1. **Physics-based data generation** (`solar_pe/physics.py`) — a single-diode PV model is
+   simulated across randomized operating conditions (irradiance, temperature) and degradation
+   states (Rs, Rsh). Each I-V curve is solved point-by-point with a Newton-Raphson iteration
+   and perturbed with sensor-like noise.
+2. **Feature engineering** (`solar_pe/dataset.py`) — raw curves are normalized and expanded
+   into model-ready tensors (voltage, current, and current gradient channels, plus
+   standardized environmental features). Targets are log-transformed since resistances span
+   orders of magnitude.
+3. **Model** (`solar_pe/model.py`) — a 1D CNN encoder extracts local curve features, which are
+   pooled into three curve regions and refined with self-attention before being fused with
+   environmental context and passed to two regression heads (one per parameter).
+4. **Training** (`solar_pe/train.py`) — weighted multi-task MSE loss, cosine learning-rate
+   schedule, noise augmentation, and early stopping on validation loss.
+5. **Evaluation** (`solar_pe/evaluate.py`) — MAE, RMSE, R², and relative error (%) on a held-out
+   test split.
+6. **Classical baseline** (`solar_pe/baseline.py`) — a nonlinear least-squares curve fit is
+   provided as a reference point for how the learned model compares to a standard
+   optimization-based approach to the same inverse problem.
 
-- photovoltaic diagnostics,
-- degradation monitoring,
-- fault detection,
-- digital twin modeling,
-- predictive maintenance,
-- and energy efficiency optimization.
+## Repository structure
 
-Traditional optimization-based approaches such as:
-
-- Newton–Raphson,
-- Particle Swarm Optimization (PSO),
-- Genetic Algorithms (GA),
-
-often suffer from:
-
-- high computational cost,
-- sensitivity to initialization,
-- convergence instability,
-- and degraded robustness under noisy operating conditions.
-
-To address these limitations, this repository introduces a **Region-Aware Attention Framework** that explicitly models physically meaningful photovoltaic operating regions using deep representation learning and attention mechanisms.
-
----
-
-# Proposed Framework
-
-The proposed framework consists of:
-
-## 1. CNN Feature Encoder
-Extracts hierarchical nonlinear representations from photovoltaic I–V characteristics.
-
-## 2. Region Decomposition
-The photovoltaic operating curve is partitioned into:
-
-- Low-voltage region
-- Transition region
-- High-voltage region
-
-to isolate parameter-sensitive operating behaviors.
-
-## 3. Cross-Region Attention
-Models nonlinear interactions between different photovoltaic operating regions.
-
-## 4. Environmental Embedding
-Incorporates irradiance and temperature information for adaptive learning.
-
-## 5. Dual Regression Heads
-Independently estimate:
-
-- Series resistance ($R_s$)
-- Shunt resistance ($R_{sh}$)
-
----
-
-# Repository Structure
-
-```bash
-.
-├── data_generation.py
-├── preprocessing.py
-├── model.py
-├── training.py
-├── evaluation.py
-├── hyperparameter_tuning.py
-├── baseline_comparison.py
-├── requirements.txt
-├── README.md
-├── pv_dataset.npz
-└── final_model.pth
+```
+solar-parameter-estimation/
+├── src/solar_pe/         # library code
+│   ├── config.py         # physical constants & hyperparameters
+│   ├── physics.py        # single-diode simulator (synthetic data generation)
+│   ├── dataset.py         # feature engineering, splitting, DataLoaders
+│   ├── model.py           # AttentionPV architecture
+│   ├── train.py           # training loop
+│   ├── evaluate.py        # metrics & inference
+│   ├── baseline.py        # classical least-squares baseline
+│   └── visualize.py       # plotting utilities
+├── scripts/               # CLI entry points
+│   ├── generate_dataset.py
+│   ├── train_model.py
+│   ├── evaluate_model.py
+│   └── run_baseline.py
+├── data/                  # generated datasets (gitignored)
+├── checkpoints/           # trained weights (gitignored)
+└── results/               # metrics & plots (gitignored)
 ```
 
----
-
-# Synthetic Dataset Generation
-
-Synthetic photovoltaic datasets are generated using the **Single-Diode Model (SDM)** combined with Newton–Raphson numerical solving.
-
-The generated dataset includes:
-
-- Current–voltage (I–V) characteristics
-- Series resistance ($R_s$)
-- Shunt resistance ($R_{sh}$)
-- Irradiance ($G$)
-- Temperature ($T$)
-- Gaussian measurement noise
-
-## Generate Dataset
+## Setup
 
 ```bash
-python data_generation.py
-```
+git clone <this-repo-url>
+cd solar-parameter-estimation
 
-Generated dataset:
+python -m venv venv
+# Windows
+venv\Scripts\activate
+# macOS / Linux
+source venv/bin/activate
 
-```bash
-pv_dataset.npz
-```
-
----
-
-# Installation
-
-Clone the repository:
-
-```bash
-git clone https://github.com/Aashikshahriar/Solar_parameter_Estimation.git
-cd Solar_parameter_Estimation
-```
-
-Install required dependencies:
-
-```bash
 pip install -r requirements.txt
 ```
 
----
-
-# Training
-
-Train the proposed framework:
+## Usage
 
 ```bash
-python training.py
+# 1. Generate a synthetic dataset
+python scripts/generate_dataset.py --out data/pv_dataset.npz --n 20000
+
+# 2. Train the model
+python scripts/train_model.py --data data/pv_dataset.npz --epochs 100
+
+# 3. Evaluate on the held-out test split
+python scripts/evaluate_model.py --data data/pv_dataset.npz --checkpoint checkpoints/best_model.pth
+
+# 4. Run the classical baseline for comparison
+python scripts/run_baseline.py --data data/pv_dataset.npz --num-samples 50
 ```
 
-The best trained model will be saved as:
+## Notes
 
-```bash
-final_model.pth
-```
+- Dataset generation, training, and evaluation configs live in `solar_pe/config.py` — adjust
+  ranges, split fractions, and hyperparameters there rather than hardcoding overrides.
+- The classical baseline is comparatively slow (per-curve optimization), so it defaults to a
+  small subset of the test split via `--num-samples`.
 
----
+## Citation
 
-# Evaluation
-
-Evaluate the trained model:
-
-```bash
-python evaluation.py
-```
-
-Evaluation metrics include:
-
-- Mean Absolute Error (MAE)
-- Relative Error Percentage (RE%)
-- Coefficient of Determination ($R^2$)
-
-for both:
-
-- $R_s$
-- $R_{sh}$
-
----
-
-# Hyperparameter Optimization
-
-Randomized hyperparameter tuning:
-
-```bash
-python hyperparameter_tuning.py
-```
-
-Optimized parameters include:
-
-- Learning rate
-- Weight decay
-- Noise augmentation
-- Multi-task loss weights
-
----
-
-
-# Framework Highlights
-
-- Physics-guided region decomposition
-- Cross-region nonlinear interaction learning
-- Environment-aware parameter estimation
-- Noise-aware robust learning
-- Multi-task photovoltaic regression
-- High computational efficiency
-- Interpretable deep learning framework
-
----
-
-# Example Pipeline
-
-```text
-Synthetic PV Dataset
-        ↓
-Preprocessing
-        ↓
-CNN Feature Extraction
-        ↓
-Region Decomposition
-        ↓
-Cross-Region Attention
-        ↓
-Environment Fusion
-        ↓
-Dual Regression Heads
-        ↓
-Rs and Rsh Estimation
-```
-
----
-
-# Dataset
-
-The synthetic photovoltaic dataset used in this work is publicly available on Zenodo:
-
-🔗 https://zenodo.org/records/20329953
-
-Dataset title:
-**Synthetic Photovoltaic I–V Dataset for Series and Shunt Resistance Estimation**
-
-The dataset contains:
-- synthetic photovoltaic I–V characteristics,
-- irradiance and temperature operating conditions,
-- series resistance ($R_s$),
-- shunt resistance ($R_{sh}$),
-- Gaussian measurement noise,
-- and corresponding ground-truth photovoltaic parameters.
-
-
-
-# Citation
-
-If you use this work, please cite:
-
-```bibtex
-@article{Shahriar_solar,
-  title={Region-Aware Attention Framework for Photovoltaic Parameter Estimation},
-  author={K.A.Shahriar},
-  year={2026}}
-```
-
----
-
-# License
-
-GNU General Public License v3.0
-
----
-
-# Acknowledgements
-
-This work was developed for research on robust photovoltaic parameter estimation under nonlinear environmental variability and measurement uncertainty.
+A citation entry will be added here once the associated paper is published.

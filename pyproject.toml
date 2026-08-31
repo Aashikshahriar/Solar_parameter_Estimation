@@ -1,0 +1,8 @@
+[project]
+name = "solar-parameter-estimation"
+version = "0.1.0"
+description = "Physics-informed deep learning for PV series/shunt resistance estimation from I-V curves."
+requires-python = ">=3.9"
+
+[tool.setuptools.packages.find]
+where = ["src"]

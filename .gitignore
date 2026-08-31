@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Data & artifacts (regenerate via scripts/, don't commit large binaries)
+data/*.npz
+checkpoints/*.pth
+results/*.png
+results/*.json
+results/*.csv
+!data/.gitkeep
+!checkpoints/.gitkeep
+!results/.gitkeep
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
